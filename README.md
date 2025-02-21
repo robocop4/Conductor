@@ -3,6 +3,8 @@ Conduror is a tool for remote management of docker containers. Condustor provide
 
 ## Contents
 - [Conductor Capabilities](#conductor-capabilities)
+- [Installation](#installation)
+- [Add User](#add-user)
 
 ## Conductor Capabilities
 Conductor provides the ability to remotely start and stop Docker containers. Several containers can be combined into one isolated network. Containers organized in one subnet are named Pods. Conductor automatically selects a free port on the host to open access from the outside. When starting a Pod, you can set its lifetime in hours. After this time, the Pod will be shut down and removed from the system.
