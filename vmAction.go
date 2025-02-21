@@ -169,7 +169,7 @@ func VMStart(hash string, UniqueId string, lifeTime string) (int, error) {
 	}
 	defer cli.Close()
 
-	go VMstopOverdue(3)
+	go VMstopOverdue()
 	//The second step is to stop and delete the containers of the same user
 	//TODO: It's a labor-intensive mechanism. It can be improved
 	err = VMstopByNetworkName(UniqueId)
@@ -404,7 +404,7 @@ func VMcheckImageExist(imageName string) (bool, error) {
 
 }
 
-func VMstopOverdue(hour int) error {
+func VMstopOverdue() error {
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -417,21 +417,23 @@ func VMstopOverdue(hour int) error {
 	}
 
 	for _, network := range networks {
+		//
+		//if timeStr, exists := network.Labels["time"]; exists {
+		if expiresTimeStr, expiresExists := network.Labels["ExpiresTime"]; expiresExists {
 
-		if timeStr, exists := network.Labels["time"]; exists {
-
-			unixtime, err := strconv.ParseInt(timeStr, 10, 64)
+			unixtime, err := strconv.ParseInt(expiresTimeStr, 10, 64)
 			if err != nil {
 				return err
 			}
 			t := time.Unix(unixtime, 0)
-			newTime := t.Add(time.Duration(hour) * time.Hour)
+			//newTime := t.Add(time.Duration(hour) * time.Hour)
 			now := time.Now().Unix()
-			if now >= newTime.Unix() {
+			if now >= t.Unix() {
 				VMstopByNetworkName(network.Name)
 			}
-
 		}
+
+		//}
 	}
 	return nil
 }
