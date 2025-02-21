@@ -98,8 +98,9 @@ func ListXML(s network.Stream, body Action) {
 // Input:
 // <Start>
 //
-//	<Hash>The hash that identifies Pod</Hash>
-//	<UniqueId>Unique user ID</UniqueId>
+//		<Hash>The hash that identifies Pod</Hash>
+//		<UniqueId>Unique user ID</UniqueId>
+//	 <Time>Pod's lifespan</Time>
 //
 // </Start>
 //
@@ -115,6 +116,7 @@ func RunXML(s network.Stream, body Action) {
 		XMLName  xml.Name `xml:"Root"`
 		Hash     string   `xml:"Hash"`
 		UniqueId string   `xml:"UniqueId"`
+		Time     string   `xml:"Time"`
 	}
 
 	var runXml RunStruct
@@ -124,7 +126,7 @@ func RunXML(s network.Stream, body Action) {
 		return
 	}
 
-	port, err := VMStart(runXml.Hash, runXml.UniqueId)
+	port, err := VMStart(runXml.Hash, runXml.UniqueId, runXml.Time)
 	if err != nil {
 		errorXML(err, s)
 		return

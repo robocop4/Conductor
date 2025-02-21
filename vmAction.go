@@ -152,7 +152,15 @@ func VMstopByNetworkName(networkName string) error {
 // This function generates a random port in the range of 1000 to 9999 and checks it for availability.
 // Information about the requested pod is taken from the database. This information is used to configure the Pod.
 // If the execution of all procedures is successful, the function will return the port on which the running pod is available.
-func VMStart(hash string, UniqueId string) (int, error) {
+func VMStart(hash string, UniqueId string, lifeTime string) (int, error) {
+
+	hours, err := strconv.Atoi(lifeTime)
+	if err != nil {
+		return 0, fmt.Errorf("VMStart>strconv.Atoi error: %s", err.Error())
+	}
+
+	currentUnixTime := time.Now().Unix()
+	ExpiresTime := currentUnixTime + int64(hours*3600)
 
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -182,7 +190,7 @@ func VMStart(hash string, UniqueId string) (int, error) {
 	// Define labels for the network
 	labels := map[string]string{
 		"uId":  UniqueId,
-		"time": fmt.Sprintf("%d", time.Now().Unix()),
+		"time": fmt.Sprintf("%d", currentUnixTime),
 		"Hash": hash,
 	}
 
@@ -250,9 +258,10 @@ func VMStart(hash string, UniqueId string) (int, error) {
 			config = &container.Config{
 				Image: img, // Specify the name of the container to run
 				Labels: map[string]string{
-					"UniqueID": UniqueId,
-					"time":     fmt.Sprintf("%d", time.Now().Unix()), // Time is used to track the life of the container. This allows you to limit the lifetime of the container if necessary.
-					"port":     fmt.Sprintf("%d", uniquePort),
+					"UniqueID":    UniqueId,
+					"ExpiresTime": fmt.Sprintf("%d", ExpiresTime),
+					"time":        fmt.Sprintf("%d", currentUnixTime), // Time is used to track the life of the container. This allows you to limit the lifetime of the container if necessary.
+					"port":        fmt.Sprintf("%d", uniquePort),
 				},
 				Env: envVars,
 				ExposedPorts: nat.PortSet{
@@ -276,8 +285,9 @@ func VMStart(hash string, UniqueId string) (int, error) {
 			config = &container.Config{
 				Image: img, // Specify the name of the container to run
 				Labels: map[string]string{
-					"UniqueID": UniqueId,
-					"time":     fmt.Sprintf("%d", time.Now().Unix()), //Time is used to track the life of the container. This allows you to limit the lifetime of the container if necessary.
+					"UniqueID":    UniqueId,
+					"ExpiresTime": fmt.Sprintf("%d", ExpiresTime),
+					"time":        fmt.Sprintf("%d", currentUnixTime), //Time is used to track the life of the container. This allows you to limit the lifetime of the container if necessary.
 				},
 				Env: envVars,
 			}
@@ -395,13 +405,12 @@ func VMcheckImageExist(imageName string) (bool, error) {
 }
 
 func VMstopOverdue(hour int) error {
-	// Инициализация клиента Docker
+
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return err
 	}
 
-	// Получаем список сетей
 	networks, err := cli.NetworkList(context.Background(), types.NetworkListOptions{})
 	if err != nil {
 		return err

@@ -250,6 +250,7 @@ func main() {
 
 	fmt.Println("My id: ", h.ID().String())
 	fmt.Println("My address: ", h.Addrs())
+	fmt.Println("My CID:", dhtRecord)
 
 	h.Network().Notify(&network.NotifyBundle{
 		ConnectedF: handleConnection,
