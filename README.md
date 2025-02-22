@@ -120,11 +120,11 @@ Received response: <Response>
 </Response>
 ```
 
-`<Pod Name>` is the name of the Pod being created. Within a single host, this value must be unique. 
-`<Port>` is the port that will be forwarded from the Pod's virtual network to the outside. 
-`<Img1,Img2>` is a comma separated list of Docker images that will be launched when the  Pod starts. These images must be added to the system in advance via the Docker CLI. 
-`<Main IMG>` is the image that will look outward. The name of this image must be in the list from the previous agrument.
-`<Metadata,Metadata>` is any comma separated data that you want to add to the Pod. This can be used to comment on the Pod. 
+- `<Pod Name>` is the name of the Pod being created. Within a single host, this value must be unique. 
+- `<Port>` is the port that will be forwarded from the Pod's virtual network to the outside. 
+- `<Img1,Img2>` is a comma separated list of Docker images that will be launched when the  Pod starts. These images must be added to the system in advance via the Docker CLI. 
+- `<Main IMG>` is the image that will look outward. The name of this image must be in the list from the previous agrument.
+- `<Metadata,Metadata>` is any comma separated data that you want to add to the Pod. This can be used to comment on the Pod. 
 
 A response with status `200` means that the command was successful and you can now view the list of Pods in the system via the `list` command:
 
