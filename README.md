@@ -152,7 +152,7 @@ Received response: <Response>
 ```
 
 In this example, a Pod with the identifier `c977ea9d35cc19738ab1230335e86920d5f1f597fbf19bac74db92d596add66c` was started and the identifier `AnyString` was assigned to it.The lifetime of the Pod is one hour.
-Only one Pod with the 'AnyString' identifier can be running on a single host. If you repeat the above command, the old Pod will be stopped and deleted and a new Pod will be started instead. To check the status of a pod by its ID, use the status command as shown in the following example:
+Only one Pod with the 'AnyString' identifier can be running on a single host. If you repeat the above command, the old Pod will be stopped and deleted and a new Pod will be started instead. To check the status of a pod by its ID, use the `status` command as shown in the following example:
 
 ```bash
 QmYZSkbAA6VByCRDdJAQJ2kZLtAzkWHzENyygaocvVHAwu>status AnyString
