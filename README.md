@@ -5,6 +5,8 @@ Conduror is a tool for remote management of docker containers. Condustor provide
 - [Conductor Capabilities](#conductor-capabilities)
 - [Installation](#installation)
 - [Add User](#add-user)
+- [Establishing a Connection](#establishing-a-connection)
+- [Creating And Managing Pods](#creating-and-managing-pods)
 
 ## Conductor Capabilities
 Conductor provides the ability to remotely start and stop Docker containers. Several containers can be combined into one isolated network. Containers organized in one subnet are named Pods. Conductor automatically selects a free port on the host to open access from the outside. When starting a Pod, you can set its lifetime in hours. After this time, the Pod will be shut down and removed from the system.
@@ -23,7 +25,7 @@ Common User:
 - Can print all available Pods on the host
 - Can view the status of a specific Pod
 
- The Conductor-CLI tool has been developed for remote interaction with Conductor.
+ The [Conductor-CLI](https://github.com/robocop4/Conductor_CLI) tool has been developed for remote interaction with Conductor.
 
 ## Installation
 
@@ -53,11 +55,11 @@ My CID: 06Opjgjf06qLdzN
 To add a user for remote communication, you need to run Conductor with the following arguments:
 
 ```bash
-// Add / Remove administrator
+// Add | Remove administrator
 ./main --admin --add <ID>
 ./main --admin --remove <ID>
 
-// Add / Remove user
+// Add | Remove user
 ./main --user --add <ID>
 ./main --user --remove <ID>
 ```
@@ -70,4 +72,112 @@ My id:  QmfT81zosWxyHP5RkXnrecAtnLY1Y7ZZ1Yx1XCWsTfmSPD
 ```
 
 Once a user is added, they can interact with the host.
+
+## Establishing a Connection
+
+Use [Conductor-CLI](https://github.com/robocop4/Conductor_CLI) for remote interaction with Conductor. To establish a connection, run the CLI with the --cid <unique identifier> switch and wait for the connection to be established, this may take a few minutes. During this time Conductor will discover all hosts with the specified identifier. Use the providers command to print out a list of all detected hosts as shown in the following terminal snippet:
+
+```bash
+./cli --cid 06Opjgjf06qLdzN
+My id:  QmfT81zosWxyHP5RkXnrecAtnLY1Y7ZZ1Yx1XCWsTfmSPD
+My address:  [/ip4/127.0.0.1/tcp/34963 /ip4/192.168.88.196/tcp/34963]
+>providers
+0 {QmYZSkbAA6VByCRDdJAQJ2kZLtAzkWHzENyygaocvVHAwu: [/ip4/<ip>/tcp/41537]}
+```
+
+Use the coand `use <int>` to select the host you want to communicate with. After selecting the host, you will receive a response from Conductor that will list the allowed commands for your user as shown in the following terminal snippet:
+
+```bash
+>providers
+0 {QmYZSkbAA6VByCRDdJAQJ2kZLtAzkWHzENyygaocvVHAwu: [/ip4/178.165.68.120/tcp/41537]}
+>use 0
+Received response: <Response>
+  <Permissions>
+    <Permission>Add</Permission>
+    <Permission>Auth</Permission>
+    <Permission>Start</Permission>
+    <Permission>Stop</Permission>
+    <Permission>List</Permission>
+    <Permission>Status</Permission>
+    <Permission>Running</Permission>
+  </Permissions>
+  <Status>200</Status>
+</Response>
+QmYZSkbAA6VByCRDdJAQJ2kZLtAzkWHzENyygaocvVHAwu>
+```
+
+If you only see `<Permission>Auth</Permission>` permissions then you have not added your user and cannot interact with the host.
+
+## Creating And Managing Pods
+
+
+You must have administrator privileges to create a pod. The following command will create a Pod on the system:
+```bash
+QmYZSkbAA6VByCRDdJAQJ2kZLtAzkWHzENyygaocvVHAwu>add <Pod Name> <Port> <Img1,Img2> <Main IMG> <Metadata,Metadata>
+Received response: <Response>
+  <Status>200</Status>
+</Response>
+```
+
+`<Pod Name>` is the name of the Pod being created. Within a single host, this value must be unique. 
+`<Port>` is the port that will be forwarded from the Pod's virtual network to the outside. 
+`<Img1,Img2>` is a comma separated list of Docker images that will be launched when the  Pod starts. These images must be added to the system in advance via the Docker CLI. 
+`<Main IMG>` is the image that will look outward. The name of this image must be in the list from the previous agrument.
+`<Metadata,Metadata>` is any comma separated data that you want to add to the Pod. This can be used to comment on the Pod. 
+
+A response with status `200` means that the command was successful and you can now view the list of Pods in the system via the `list` command:
+
+```bash
+QmYZSkbAA6VByCRDdJAQJ2kZLtAzkWHzENyygaocvVHAwu>list
+Received response: <Response>
+  <Pod>
+    <PodName>Rododedron</PodName>
+    <Hash>b4786b837c88411c9b3bb09275e0ad28768538f7b50172d5483673e9f6369b88</Hash>
+  </Pod>
+  <Pod>
+    <PodName>PodTest</PodName>
+    <Hash>c977ea9d35cc19738ab1230335e86920d5f1f597fbf19bac74db92d596add66c</Hash>
+  </Pod>
+</Response>
+```
+
+Pods are identified in the system through hash values. This value must be unique within a single host. Use the `run` command to start the Pod as shown in the following snippet:
+
+```bash
+QmYZSkbAA6VByCRDdJAQJ2kZLtAzkWHzENyygaocvVHAwu>run c977ea9d35cc19738ab1230335e86920d5f1f597fbf19bac74db92d596add66c AnyString 1
+Received response: <Response>
+  <Address>IP:9669</Address>
+  <Status>200</Status>
+</Response>
+```
+
+In this example, a Pod with the identifier `c977ea9d35cc19738ab1230335e86920d5f1f597fbf19bac74db92d596add66c` was started and the identifier `AnyString` was assigned to it.The lifetime of the Pod is one hour.
+Only one Pod with the 'AnyString' identifier can be running on a single host. If you repeat the above command, the old Pod will be stopped and deleted and a new Pod will be started instead. To check the status of a pod by its ID, use the status command as shown in the following example:
+
+```bash
+QmYZSkbAA6VByCRDdJAQJ2kZLtAzkWHzENyygaocvVHAwu>status AnyString
+Received response: <Response>
+  <Status>200</Status>
+  <Hash>c977ea9d35cc19738ab1230335e86920d5f1f597fbf19bac74db92d596add66c</Hash>
+  <Port>9669</Port>
+</Response>
+```
+
+To stop the Pod, you can wait until one hour has elapsed or use the `stop` command. To view all running Pods, use the `running` command:
+
+```bash
+QmYZSkbAA6VByCRDdJAQJ2kZLtAzkWHzENyygaocvVHAwu>running
+Received response: <Response>
+  <Status>200</Status>
+  <Running>
+    <AnyString2>/test2-AnyString2 /test-AnyString2</AnyString2>
+    <AnyString>/test2-AnyString /test-AnyString</AnyString>
+  </Running>
+</Response>
+QmYZSkbAA6VByCRDdJAQJ2kZLtAzkWHzENyygaocvVHAwu>stop AnyString
+Received response: <Response>
+  <Status>200</Status>
+</Response>`
+```
+
 
