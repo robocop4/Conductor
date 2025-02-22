@@ -7,6 +7,7 @@ Conduror is a tool for remote management of docker containers. Condustor provide
 - [Add User](#add-user)
 - [Establishing a Connection](#establishing-a-connection)
 - [Creating And Managing Pods](#creating-and-managing-pods)
+- [Communications Between Containers Within a Single Pod](communications-between-containers-within-a-single-pod)
 
 ## Conductor Capabilities
 Conductor provides the ability to remotely start and stop Docker containers. Several containers can be combined into one isolated network. Containers organized in one subnet are named Pods. Conductor automatically selects a free port on the host to open access from the outside. When starting a Pod, you can set its lifetime in hours. After this time, the Pod will be shut down and removed from the system.
@@ -180,4 +181,35 @@ Received response: <Response>
 </Response>`
 ```
 
+## Communications Between Containers Within a Single Pod
 
+All containers within a single Pod are bounded by a virtual network and can communicate with each other. As an example, suppose that Pod contains two containers and we need to send an HTTP request from container `test` to container `test2`. It is enough to use the name of the second container as url as shown in the following fragment from the terminal:
+
+```bash
+root@496e01a61974:/# curl $test2
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+```
+
+The `test2` in this case is the name of the image.
