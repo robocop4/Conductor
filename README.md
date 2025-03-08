@@ -1,4 +1,10 @@
-# Сonductor
+
+
+
+<p align="center"><img  src="https://raw.githubusercontent.com/robocop4/Conductor/refs/heads/main/logo.png"  height="200"/></p>
+<h1 align="center">Сonductor</h1>
+
+
 Conduror is a tool for remote management of docker containers. Condustor provides a mechanism to search for a container on several hosts and authenticated access to interact with containers 
 
 ## Contents
