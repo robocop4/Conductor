@@ -18,19 +18,25 @@ Conduror is a tool for remote management of docker containers. Condustor provide
 ## Conductor Capabilities
 Conductor provides the ability to remotely start and stop Docker containers. Several containers can be combined into one isolated network. Containers organized in one subnet are named Pods. Conductor automatically selects a free port on the host to open access from the outside. When starting a Pod, you can set its lifetime in hours. After this time, the Pod will be shut down and removed from the system.
 
-Conductor has differentiated access rights. Currently, two roles with different access levels are supported.
+Conductor has differentiated access rights. Currently, three roles with different access levels are supported.
 
-User with administrator rights:
-- Can start and stop Pods
-- Can print all available Pods on the host
-- Can view the status of a specific Pod
-- Can view a list of all running Pods
-- Can add Pods to the host
+**Administrator rights and restrictions**
+- Can start and stop Pods.
+- Can print all available Pods on the host.
+- Can view the status of a specific Pod.
+- Can view a list of all running Pods.
+- Can add Pods to the host.
   
-Common User:
-- Can start and stop Pods
-- Can print all available Pods on the host
-- Can view the status of a specific Pod
+**Common user rights and restrictions**
+- Can start and stop Pods.
+- Can print all available Pods on the host.
+- Can view the status of a specific Pod.
+
+**Guest user rights and restrictions**
+
+A guest user has the same rights as a normal user, with the following exceptions:
+- A Guest can only run one Pod at a time. If a second pod tries to start, the previous pod will be automatically stopped.
+- Guest cannot set the lifetime of a Pod. All pods started by a guest user have a fixed lifetime of 3 hours.
 
  The [Conductor-CLI](https://github.com/robocop4/Conductor_CLI) tool has been developed for remote interaction with Conductor.
 
