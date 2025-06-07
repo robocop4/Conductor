@@ -60,15 +60,3 @@ func saveKeyToFile() (crypto.PrivKey, crypto.PubKey) {
 	}
 	return privKey, pubKey
 }
-
-func generateKey() ([]byte, []byte) {
-
-	privKey, pubKey, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
-	if err != nil {
-		panic(err)
-	}
-	privKeyByte, _ := crypto.MarshalPrivateKey(privKey)
-	pubKeyByte, _ := crypto.MarshalPublicKey(pubKey)
-	return privKeyByte, pubKeyByte
-
-}

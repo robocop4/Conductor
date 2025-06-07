@@ -2,14 +2,12 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
-	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	vmSQL "main/sql"
 	"net/http"
 	"strings"
 	"sync"
@@ -24,16 +22,6 @@ import (
 )
 
 var globalIp string
-
-var db *sql.DB
-
-func StringToSHA256(input string) string {
-	hash := sha256.New()
-	hash.Write([]byte(input))
-	hashBytes := hash.Sum(nil)
-	hashString := hex.EncodeToString(hashBytes)
-	return hashString
-}
 
 func getGlobalIP() string {
 	type Response struct {
@@ -107,6 +95,7 @@ func handleConnection(net network.Network, conn network.Conn) {
 
 type Action struct {
 	Content string `xml:",innerxml"`
+	Role    int    `xml:"Role"`
 }
 
 func main() {
@@ -115,23 +104,32 @@ func main() {
 	// fmt.Println(err1)
 
 	// return
-	_, err := initDB()
+	db, err := vmSQL.SQLinitDB()
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
+	defer db.Close()
 
 	var adminFlag bool
 	var userFlag bool
+	var guestFlag bool
 	var addFlag string
 	var removeFlag string
+	//TODO In the next version, add a comment to the user
+	//var commentFlag string
 	var listFlag bool
 
 	flag.BoolVar(&adminFlag, "admin", false, "Administrator operation.")
 	flag.BoolVar(&userFlag, "user", false, "User operation.")
+	flag.BoolVar(&guestFlag, "guest", false, "Guest operation.")
+
 	flag.StringVar(&addFlag, "add", "", "Add user.")
 	flag.StringVar(&removeFlag, "remove", "", "Delete user.")
 	flag.BoolVar(&listFlag, "list", false, "List of all users in the system.")
+	//TODO In the next version, add a comment to the user
+	//flag.StringVar(&commentFlag, "cmt", "", "Add a comment to the user")
+
 	//port := flag.Int("port", 0, "Change port.")
 
 	flag.Parse()
@@ -142,7 +140,7 @@ func main() {
 		//Add an administrator
 		if addFlag != "" {
 			fmt.Println(addFlag)
-			err := addUser(1, addFlag)
+			err := vmSQL.SQLaddUser(db, 1, addFlag)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -152,7 +150,7 @@ func main() {
 			//Delete the administrator
 		} else if removeFlag != "" {
 
-			err := deleteUser(1, addFlag)
+			err := vmSQL.SQLdeleteUser(db, 1, addFlag)
 			if err != nil {
 				fmt.Println(err.Error())
 				return
@@ -173,7 +171,7 @@ func main() {
 		//Do an action with a user user
 		//Add user
 		if addFlag != "" {
-			err := addUser(2, addFlag)
+			err := vmSQL.SQLaddUser(db, 2, addFlag)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -182,7 +180,7 @@ func main() {
 			return
 			//Deleting a user
 		} else if removeFlag != "" {
-			err := deleteUser(2, addFlag)
+			err := vmSQL.SQLdeleteUser(db, 2, addFlag)
 			if err != nil {
 				fmt.Println(err.Error())
 				return
@@ -197,8 +195,37 @@ func main() {
 		}
 	}
 
+	if guestFlag != false {
+		//Do an action with a user user
+		//Add user
+		if addFlag != "" {
+			err := vmSQL.SQLaddUser(db, 3, addFlag)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			fmt.Println(fmt.Sprintf("%s has been granted guest privileges.", addFlag))
+			return
+			//Deleting a user
+		} else if removeFlag != "" {
+			err := vmSQL.SQLdeleteUser(db, 3, addFlag)
+			if err != nil {
+				fmt.Println(err.Error())
+				return
+			}
+			fmt.Println(fmt.Sprintf("%s removed from the list of users.", addFlag))
+			return
+
+		} else {
+			fmt.Println("Example of use:")
+			fmt.Println("--guest --add 5c3fdb68680711a2f5f143d2a0a0f27ccfe51194cc349bdb2f2d5e705c7f2a8c")
+			fmt.Println("--guest --remove 5c3fdb68680711a2f5f143d2a0a0f27ccfe51194cc349bdb2f2d5e705c7f2a8c")
+		}
+	}
+
+	// Print all users
 	if listFlag != false {
-		users, err := listUsers()
+		users, err := vmSQL.SQLlistUsers(db)
 		if err != nil {
 			fmt.Println(err.Error())
 			return
@@ -221,13 +248,13 @@ func main() {
 
 	ctx := context.Background()
 	//privKey, _ := LoadKeyFromFile()
-	portRecord, dhtRecord, privKey, err := SQLgetSettings()
+	portRecord, dhtRecord, privKey, err := vmSQL.SQLgetSettings(db)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 
-	listen, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", portRecord))
+	listen, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d/ws", portRecord))
 	if err != nil {
 		fmt.Println(err.Error())
 	}

@@ -3,13 +3,13 @@ package main
 var RBAC = make(map[string][]int)
 
 func RBACinit() {
-	RBAC["Start"] = []int{1, 2}
-	RBAC["Stop"] = []int{1, 2}
-	RBAC["List"] = []int{1, 2}
-	RBAC["Status"] = []int{1, 2}
+	RBAC["Start"] = []int{1, 2, 3}
+	RBAC["Stop"] = []int{1, 2, 3}
+	RBAC["List"] = []int{1, 2, 3}
+	RBAC["Status"] = []int{1, 2, 3}
 	RBAC["Running"] = []int{1}
 	RBAC["Add"] = []int{1}
-	RBAC["Auth"] = []int{0, 1, 2}
+	RBAC["Auth"] = []int{0, 1, 2, 3}
 
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/xml"
+	vmSQL "main/sql"
 	"strings"
 
 	"github.com/libp2p/go-libp2p/core/network"
@@ -56,13 +57,20 @@ func streamHandler(router *Router) func(s network.Stream) {
 			return
 		}
 
-		// permission check
-		role, err := SQLcheckRole(s.Conn().RemotePeer().String())
+		db, err := vmSQL.SQLgetDB()
+		if err != nil {
+			return
+		}
+
+		defer db.Close()
+
+		// Get the role from the database based on the user ID
+		role, err := vmSQL.SQLcheckRole(db, s.Conn().RemotePeer().String())
 		if err != nil {
 			errorXML(err, s)
 			return
 		}
-
+		// permission check
 		perm := ChackRole(RBAC[root.Local], role)
 		// the user has no rights to call the function
 		if !perm {
@@ -86,6 +94,8 @@ func streamHandler(router *Router) func(s network.Stream) {
 			s.Close()
 			return
 		}
+		//	Add the received role to the structure which then falls into the endpoint handler
+		action.Role = role
 
 		// Routing the request depending on the root element
 		if handler, ok := router.routes[root.Local]; ok {

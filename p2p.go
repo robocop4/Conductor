@@ -14,6 +14,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/pnet"
 	"github.com/libp2p/go-libp2p/core/routing"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
+	websocket "github.com/libp2p/go-libp2p/p2p/transport/websocket"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -32,7 +33,7 @@ func SetupLibp2p(ctx context.Context,
 	if secret != nil {
 		transports = libp2p.ChainOptions(
 			libp2p.NoTransports,
-			libp2p.Transport(tcp.NewTCPTransport),
+			libp2p.Transport(tcp.NewTCPTransport, websocket.New),
 			//libp2p.Transport(websocket.New),
 		)
 	}

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	vmSQL "main/sql"
+	vm "main/vm_action"
 	"strings"
 
 	"github.com/libp2p/go-libp2p/core/network"
@@ -69,6 +71,13 @@ func errorXML(err error, s network.Stream) {
 // </Response>
 func ListXML(s network.Stream, body Action) {
 
+	db, err := vmSQL.SQLgetDB()
+	if err != nil {
+		return
+	}
+
+	defer db.Close()
+
 	type Action struct {
 		XMLName xml.Name `xml:"Root"`
 		Action  string   `xml:"Root>Action"`
@@ -76,14 +85,14 @@ func ListXML(s network.Stream, body Action) {
 	xmlWithRoot := fmt.Sprintf("<Root>%s</Root>", body.Content)
 	var action Action
 
-	err := unmarshalXML([]byte(xmlWithRoot), &action)
+	err = unmarshalXML([]byte(xmlWithRoot), &action)
 	if err != nil {
 		errorXML(err, s)
 		return
 	}
 
 	//Response
-	response, err := SQLGetAllPods()
+	response, err := vmSQL.SQLGetAllPods(db)
 	if err != nil {
 		errorXML(err, s)
 		return
@@ -111,6 +120,14 @@ func ListXML(s network.Stream, body Action) {
 // </Response>
 func RunXML(s network.Stream, body Action) {
 
+	db, err := vmSQL.SQLgetDB()
+	if err != nil {
+		errorXML(err, s)
+		return
+	}
+
+	defer db.Close()
+
 	xmlWithRoot := fmt.Sprintf("<Root>%s</Root>", string(body.Content))
 	type RunStruct struct {
 		XMLName  xml.Name `xml:"Root"`
@@ -120,13 +137,22 @@ func RunXML(s network.Stream, body Action) {
 	}
 
 	var runXml RunStruct
-	err := unmarshalXML([]byte(xmlWithRoot), &runXml)
+	err = unmarshalXML([]byte(xmlWithRoot), &runXml)
 	if err != nil {
 		errorXML(err, s)
 		return
 	}
 
-	port, err := VMStart(runXml.Hash, runXml.UniqueId, runXml.Time)
+	// If this user's role == 3 (guest), then we take his peerID as the identifier
+	// This will prevent him from running multiple pods and prevent him from stopping anyone else's pods
+	// If the pod is started as a guest, the lifetime is hardcoded to 3 hours
+	// TODO: In future versions, it should be possible to change this time through the settings
+	if body.Role == 3 {
+		runXml.UniqueId = s.Conn().RemotePeer().String()
+		runXml.Time = "3"
+	}
+
+	port, err := vm.VMStart(db, runXml.Hash, runXml.UniqueId, runXml.Time)
 	if err != nil {
 		errorXML(err, s)
 		return
@@ -175,7 +201,13 @@ func StopXML(s network.Stream, body Action) {
 		return
 	}
 
-	err = VMstopByNetworkName(runXml.UniqueId)
+	// If this user's role == 3 (guest), then we take his peerID as the identifier
+	// This will prevent him from running multiple pods and prevent him from stopping anyone else's pods
+	if body.Role == 3 {
+		runXml.UniqueId = s.Conn().RemotePeer().String()
+	}
+
+	err = vm.VMstopByNetworkName(runXml.UniqueId)
 	if err != nil {
 		errorXML(err, s)
 		return
@@ -222,12 +254,19 @@ func StatusXML(s network.Stream, body Action) {
 		return
 	}
 
-	port, hash, err := VMstatus(runXml.UniqueId)
+	// If this user's role == 3 (guest), then we take his peerID as the identifier
+	// This will prevent him from running multiple pods and prevent him from stopping anyone else's pods
+	if body.Role == 3 {
+		runXml.UniqueId = s.Conn().RemotePeer().String()
+	}
+
+	port, hash, err := vm.VMstatus(runXml.UniqueId)
 	if err != nil {
 		errorXML(err, s)
 		return
 	}
 
+	//TODO: Need to add a filename to the response
 	type Response struct {
 		XMLName xml.Name `xml:"Response"`
 		Status  int      `xml:"Status"`
@@ -263,7 +302,7 @@ func StatusXML(s network.Stream, body Action) {
 func RunningXML(s network.Stream, body Action) {
 
 	rMap := make(map[string][]string)
-	containers, err := VMgetRunningPods()
+	containers, err := vm.VMgetRunningPods()
 	if err != nil {
 		errorXML(err, s)
 		return
@@ -316,8 +355,15 @@ func RunningXML(s network.Stream, body Action) {
 
 func AuthXML(s network.Stream, body Action) {
 
+	db, err := vmSQL.SQLgetDB()
+	if err != nil {
+		return
+	}
+
+	defer db.Close()
 	//Check user role in the database
-	role, _ := SQLcheckRole(s.Conn().RemotePeer().String())
+	role, _ := vmSQL.SQLcheckRole(db, s.Conn().RemotePeer().String())
+
 	//Get the full list of user privileges
 	perm := CheckPermission(RBAC, role)
 
@@ -343,7 +389,7 @@ func AddXML(s network.Stream, body Action) {
 
 	xmlWithRoot := fmt.Sprintf("<Pod>%s</Pod>", string(body.Content))
 
-	var addXml Pod
+	var addXml vm.Pod
 
 	err := unmarshalXML([]byte(xmlWithRoot), &addXml)
 	if err != nil {
@@ -356,10 +402,15 @@ func AddXML(s network.Stream, body Action) {
 		return
 	}
 
-	//
+	db, err := vmSQL.SQLgetDB()
+	if err != nil {
+		errorXML(err, s)
+		return
+	}
+	defer db.Close()
 
 	for _, img := range addXml.Images {
-		check, err := VMcheckImageExist(img)
+		check, err := vm.VMcheckImageExist(img)
 		if err != nil {
 			errorXML(err, s)
 			return
@@ -371,11 +422,14 @@ func AddXML(s network.Stream, body Action) {
 
 	}
 
-	err = VMCreate(addXml)
+	err = vm.VMCreate(db, addXml)
 	if err != nil {
 		errorXML(err, s)
 		return
 	}
+
+	//TODO: Занести информацию об этом поде в DHT
+
 	// response
 	type Response struct {
 		XMLName xml.Name `xml:"Response"`
